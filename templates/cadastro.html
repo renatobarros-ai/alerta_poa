@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro de Usuários - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-plus"></i> Cadastro de Usuários para Alertas
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="form-cadastro" onsubmit="submitCadastro(event)">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome Completo:</label>
+                            <input type="text" class="form-control" id="nome" name="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email:</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="telefone" class="form-label">Telefone (WhatsApp):</label>
+                            <input type="tel" class="form-control" id="telefone" name="telefone" 
+                                   placeholder="51999887766" required>
+                            <div class="form-text">Formato: 51999887766 (com DDD)</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="regiao" class="form-label">Região de Interesse:</label>
+                            <select class="form-select" id="regiao" name="regiao" required>
+                                <option value="">Selecione uma região</option>
+                                {% for regiao in regioes %}
+                                <option value="{{ regiao.id }}">{{ regiao.numero }} - {{ regiao.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="situacao" class="form-label">Status:</label>
+                            <select class="form-select" id="situacao" name="situacao">
+                                <option value="ATIVO">Ativo</option>
+                                <option value="INATIVO">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Importante:</strong> Você receberá alertas por email e WhatsApp quando houver 
+                        situações de risco na região selecionada.
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary" onclick="limparFormulario()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Cadastrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Lista de Usuários Cadastrados -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-users"></i> Usuários Cadastrados
+                </h6>
+                <button class="btn btn-sm btn-outline-primary" onclick="carregarUsuarios()">
+                    <i class="fas fa-sync-alt"></i> Atualizar
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tabela-usuarios">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Região</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Carregando...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="modalExcluir" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-trash"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o cadastro de <strong id="nome-excluir"></strong>?</p>
+                <p class="text-muted">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmarExclusao()">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let usuarioParaExcluir = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarUsuarios();
+    });
+    
+    function submitCadastro(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const data = {
+            nome: formData.get('nome'),
+            email: formData.get('email'),
+            telefone: formData.get('telefone'),
+            regiao: formData.get('regiao'),
+            situacao: formData.get('situacao')
+        };
+        
+        // Validação simples
+        if (!data.nome || !data.email || !data.telefone || !data.regiao) {
+            Utils.showAlert('Por favor, preencha todos os campos obrigatórios.', 'warning');
+            return;
+        }
+        
+        // Validação de telefone
+        if (!/^\d{10,11}$/.test(data.telefone)) {
+            Utils.showAlert('Telefone deve conter 10 ou 11 dígitos (com DDD).', 'warning');
+            return;
+        }
+        
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+        submitBtn.disabled = true;
+        
+        fetch(APP_CONFIG.API_BASE_URL + 'cadastros/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.id) {
+                Utils.showAlert('Usuário cadastrado com sucesso!', 'success');
+                limparFormulario();
+                carregarUsuarios();
+            } else {
+                // Trata erros de validação
+                let errorMsg = 'Erro ao cadastrar usuário.';
+                if (data.email) {
+                    errorMsg = 'Este email já está cadastrado.';
+                } else if (data.non_field_errors) {
+                    errorMsg = data.non_field_errors[0];
+                }
+                Utils.showAlert(errorMsg, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            Utils.showAlert('Erro ao cadastrar usuário. Tente novamente.', 'danger');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    }
+    
+    function carregarUsuarios() {
+        fetch(APP_CONFIG.API_BASE_URL + 'cadastros/')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.querySelector('#tabela-usuarios tbody');
+                
+                if (data.results && data.results.length > 0) {
+                    const html = data.results.map(usuario => `
+                        <tr>
+                            <td>${usuario.nome}</td>
+                            <td>${usuario.email}</td>
+                            <td>${usuario.telefone}</td>
+                            <td>${usuario.regiao_nome}</td>
+                            <td>
+                                <span class="badge ${usuario.situacao === 'ATIVO' ? 'bg-success' : 'bg-secondary'}">
+                                    ${usuario.situacao}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="solicitarExclusao(${usuario.id}, '${usuario.nome}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    tbody.innerHTML = html;
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhum usuário cadastrado</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar usuários:', error);
+                document.querySelector('#tabela-usuarios tbody').innerHTML = 
+                    '<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>';
+            });
+    }
+    
+    function limparFormulario() {
+        document.getElementById('form-cadastro').reset();
+    }
+    
+    function solicitarExclusao(userId, userName) {
+        usuarioParaExcluir = userId;
+        document.getElementById('nome-excluir').textContent = userName;
+        new bootstrap.Modal(document.getElementById('modalExcluir')).show();
+    }
+    
+    function confirmarExclusao() {
+        if (!usuarioParaExcluir) return;
+        
+        fetch(APP_CONFIG.API_BASE_URL + `cadastros/${usuarioParaExcluir}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                Utils.showAlert('Usuário excluído com sucesso!', 'success');
+                carregarUsuarios();
+                bootstrap.Modal.getInstance(document.getElementById('modalExcluir')).hide();
+            } else {
+                Utils.showAlert('Erro ao excluir usuário.', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            Utils.showAlert('Erro ao excluir usuário.', 'danger');
+        })
+        .finally(() => {
+            usuarioParaExcluir = null;
+        });
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}

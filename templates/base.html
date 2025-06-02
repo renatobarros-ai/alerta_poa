@@ -1,8 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Monitoramento de Alagamentos em Porto Alegre">
+    <meta name="author" content="Sistema Alagamentos POA">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{% block title %}Sistema de Monitoramento de Alagamentos - Porto Alegre{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -15,86 +19,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
-    <style>
-        :root {
-            --cor-normal: #28a745;
-            --cor-alerta: #ffc107;
-            --cor-critico: #dc3545;
-            --cor-fundo: #f8f9fa;
-        }
-        
-        body {
-            background-color: var(--cor-fundo);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .navbar-brand {
-            font-weight: bold;
-            color: #0056b3 !important;
-        }
-        
-        .status-normal {
-            background-color: var(--cor-normal);
-            color: white;
-        }
-        
-        .status-alerta {
-            background-color: var(--cor-alerta);
-            color: black;
-        }
-        
-        .status-critico {
-            background-color: var(--cor-critico);
-            color: white;
-        }
-        
-        .card-stats {
-            transition: transform 0.2s;
-        }
-        
-        .card-stats:hover {
-            transform: translateY(-2px);
-        }
-        
-        .mapa-container {
-            height: 500px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .alert-tempo-real {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            max-width: 350px;
-        }
-        
-        .ultima-atualizacao {
-            font-size: 0.8em;
-            color: #6c757d;
-        }
-        
-        .loading-spinner {
-            display: none;
-        }
-        
-        .conexao-status {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-        
-        .conexao-online {
-            background-color: var(--cor-normal);
-        }
-        
-        .conexao-offline {
-            background-color: var(--cor-critico);
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/custom.css">
     
     {% block extra_css %}{% endblock %}
 </head>
@@ -168,7 +93,7 @@
         // Configuração global
         window.APP_CONFIG = {
             API_BASE_URL: '/api/',
-            WEBSOCKET_URL: `ws://${window.location.host}/ws/alagamentos/`,
+            WEBSOCKET_URL: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/alagamentos/`,
             UPDATE_INTERVAL: 30000, // 30 segundos
         };
         

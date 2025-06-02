@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # Database
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: alagamentos_poa
+      MYSQL_USER: alagamentos_user
+      MYSQL_PASSWORD: alagamentos_pass
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./doc_dev/script_sql.txt:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      timeout: 20s
+      retries: 10
+
+  # Redis (for WebSocket and caching)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Django App
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "True"
+      DB_ENGINE: django.db.backends.mysql
+      DB_NAME: alagamentos_poa
+      DB_USER: alagamentos_user
+      DB_PASSWORD: alagamentos_pass
+      DB_HOST: db
+      DB_PORT: 3306
+      REDIS_URL: redis://redis:6379/1
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "
+        python manage.py migrate --fake-initial &&
+        python manage.py populate_initial_data &&
+        python manage.py collectstatic --noinput &&
+        python manage.py runserver 0.0.0.0:8000
+      "
+
+  # Simulator (background service)
+  simulator:
+    build: .
+    environment:
+      DEBUG: "True"
+      DB_ENGINE: django.db.backends.mysql
+      DB_NAME: alagamentos_poa
+      DB_USER: alagamentos_user
+      DB_PASSWORD: alagamentos_pass
+      DB_HOST: db
+      DB_PORT: 3306
+    volumes:
+      - .:/app
+    depends_on:
+      - web
+    command: python manage.py simulate_data --continuous --interval 30
+    restart: unless-stopped
+
+  # Nginx (reverse proxy)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      - web
+
+volumes:
+  db_data:
+  redis_data:
+  static_volume:
+  media_volume:

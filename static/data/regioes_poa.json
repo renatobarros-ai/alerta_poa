@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "numero": 1,
+        "nome": "Centro Histórico"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-51.2177, -30.0346],
+          [-51.2100, -30.0346],
+          [-51.2100, -30.0400],
+          [-51.2177, -30.0400],
+          [-51.2177, -30.0346]
+        ]]
+      }
+    }
+  ]
+}

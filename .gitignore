@@ -1,0 +1,434 @@
+# ==============================================================================
+# .gitignore - Sistema de Monitoramento de Alagamentos - Porto Alegre
+# ==============================================================================
+
+# ==============================================================================
+# PYTHON CORE
+# ==============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# ==============================================================================
+# DJANGO ESPECÍFICO
+# ==============================================================================
+# Django database
+*.sqlite3
+*.sqlite3-journal
+
+# Django migrations (manter estrutura, ignorar dados)
+*/migrations/__pycache__/
+*/migrations/*.pyc
+
+# Django logs
+*.log
+django.log
+
+# Django static files (coletados)
+staticfiles/
+static_collected/
+collected_static/
+
+# Django media files (uploads)
+media/
+
+# Django local settings
+local_settings.py
+settings_local.py
+*_local.py
+
+# Django secret key file
+.secret_key
+
+# Django sessions
+django_session*
+
+# ==============================================================================
+# AMBIENTES E CONFIGURAÇÃO
+# ==============================================================================
+# Environment files
+.env
+.env.*
+!.env.example
+environment.yml
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# conda
+.conda/
+
+# ==============================================================================
+# BANCO DE DADOS
+# ==============================================================================
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# MySQL/MariaDB dumps
+*.sql
+*.dump
+!doc_dev/script_sql.txt  # Manter script inicial
+
+# PostgreSQL
+*.psql
+
+# Database backups
+backup_*.sql
+dump_*.sql
+*_backup.sql
+
+# ==============================================================================
+# MACHINE LEARNING / IA
+# ==============================================================================
+# PyTorch models (exceto o modelo principal)
+*.pth
+*.pt
+*.model
+!ia/models/detector.pth  # Manter modelo principal
+
+# TensorFlow
+*.pb
+*.h5
+*.hdf5
+
+# Scikit-learn
+*.pkl
+*.pickle
+*.joblib
+
+# Model training data
+training_data/
+test_data/
+validation_data/
+datasets/
+
+# Training logs
+tensorboard_logs/
+training_logs/
+model_checkpoints/
+
+# ==============================================================================
+# FRONTEND / STATIC
+# ==============================================================================
+# Node.js (se usando npm/yarn para frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# CSS/JS compiled
+*.min.css
+*.min.js
+*.css.map
+*.js.map
+
+# Sass/SCSS
+.sass-cache/
+*.css.map
+
+# ==============================================================================
+# LOGS E DEBUGGING
+# ==============================================================================
+# Application logs
+logs/
+*.log
+debug.log
+error.log
+access.log
+
+# Django debug toolbar
+.debug_toolbar/
+
+# Profiling
+*.prof
+*.profile
+
+# ==============================================================================
+# DEVELOPMENT TOOLS
+# ==============================================================================
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pytest
+.pytest_cache/
+
+# coverage
+.coverage
+htmlcov/
+
+# ==============================================================================
+# OPERATING SYSTEM
+# ==============================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Linux
+.directory
+
+# ==============================================================================
+# DOCKER & DEPLOYMENT
+# ==============================================================================
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker volumes data
+docker_data/
+postgres_data/
+mysql_data/
+redis_data/
+
+# Kubernetes
+*.yaml.local
+*.yml.local
+
+# ==============================================================================
+# REDIS / CACHE
+# ==============================================================================
+# Redis
+dump.rdb
+appendonly.aof
+redis.conf.local
+
+# Cache
+.cache/
+cache/
+
+# ==============================================================================
+# SIMULAÇÃO E DADOS
+# ==============================================================================
+# Dados simulados gerados
+simulated_data/
+generated_data/
+simulation_output/
+
+# Imagens de câmeras simuladas
+camera_images/
+simulated_images/
+temp_images/
+
+# Exports e relatórios
+exports/
+reports/
+*.csv
+*.xlsx
+*.xls
+!static/data/*.json  # Manter dados GeoJSON
+
+# ==============================================================================
+# NOTIFICAÇÕES E INTEGRAÇÃO
+# ==============================================================================
+# Credenciais de APIs
+whatsapp_credentials.json
+email_credentials.json
+api_keys.txt
+
+# Arquivos de certificados
+*.pem
+*.key
+*.crt
+*.p12
+
+# ==============================================================================
+# BACKUPS E TEMPORÁRIOS
+# ==============================================================================
+# Backup files
+*.bak
+*.backup
+*.old
+*~
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ==============================================================================
+# DOCUMENTAÇÃO
+# ==============================================================================
+# Sphinx documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# ==============================================================================
+# TESTES E QA
+# ==============================================================================
+# Test databases
+test_*.db
+test_*.sqlite3
+
+# Test outputs
+test_output/
+test_results/
+
+# Load testing
+locust_results/
+
+# ==============================================================================
+# MONITORAMENTO E MÉTRICAS
+# ==============================================================================
+# Prometheus
+prometheus_data/
+
+# Grafana
+grafana_data/
+
+# Application metrics
+metrics/
+monitoring/
+
+# ==============================================================================
+# CUSTOM PROJECT SPECIFIC
+# ==============================================================================
+# Dados específicos do projeto
+custom_regioes/
+custom_sensors/
+local_config/
+
+# Desenvolvimento local
+dev_notes.txt
+TODO.md
+NOTES.md
+
+# Scripts de desenvolvimento pessoal
+dev_scripts/
+personal_scripts/
+
+# Dados de teste específicos do desenvolvedor
+my_test_data/
+personal_tests/
+
+# ==============================================================================
+# PRODUCTION SECRETS
+# ==============================================================================
+# Production environment files
+.env.production
+.env.staging
+.env.prod
+production_settings.py
+
+# SSL/TLS certificates for production
+ssl/
+certificates/
+
+# Production logs (se commitados localmente)
+production.log
+prod.log
+
+# ==============================================================================
+# ANALYTICS E TRACKING
+# ==============================================================================
+# Google Analytics
+analytics_data/
+
+# User tracking data
+user_data/
+tracking/
+
+# ==============================================================================
+# FINAL NOTES
+# ==============================================================================
+# Este .gitignore é específico para o projeto Sistema de Monitoramento
+# de Alagamentos de Porto Alegre, desenvolvido em Django com:
+# - PyTorch para CNN
+# - MariaDB/MySQL como banco
+# - Redis para WebSocket
+# - Frontend com Bootstrap + Leaflet
+# - Sistema de simulação de dados
+# - APIs REST + WebSocket

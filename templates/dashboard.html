@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Dashboard - {{ block.super }}{% endblock %}
 
@@ -176,17 +177,22 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% url 'static' 'js/websocket.js' %}"></script>
-<script src="{% url 'static' 'js/map.js' %}"></script>
+<script src="/static/js/websocket.js"></script>
+<script src="/static/js/map.js"></script>
 <script>
     let map, websocket;
     let regiaoSelecionada = null;
     
     // Inicialização
     document.addEventListener('DOMContentLoaded', function() {
-        initializeMap();
-        initializeWebSocket();
-        loadInitialData();
+        try {
+            initializeMap();
+            initializeWebSocket();
+            loadInitialData();
+        } catch (error) {
+            console.error('Erro na inicialização:', error);
+            Utils.showAlert('Erro ao inicializar o sistema. Recarregue a página.', 'danger');
+        }
     });
     
     function initializeMap() {
