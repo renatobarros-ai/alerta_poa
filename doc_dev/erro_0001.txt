@@ -1,0 +1,157 @@
+░▒▓     …/sistema   main ✘!?   13:26 
+❯ python manage.py migrate
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, core, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying core.0001_initial...Traceback (most recent call last):
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 103, in _execute
+    return self.cursor.execute(sql)
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 76, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+MySQLdb.OperationalError: (1050, "Table 'nivel_agua' already exists")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/manage.py", line 22, in <module>
+    main()
+    ~~~~^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/core/management/base.py", line 416, in run_from_argv
+    self.execute(*args, **cmd_options)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/core/management/base.py", line 460, in execute
+    output = self.handle(*args, **options)
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/core/management/base.py", line 107, in wrapper
+    res = handle_func(*args, **kwargs)
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py", line 353, in handle
+    post_migrate_state = executor.migrate(
+        targets,
+    ...<3 lines>...
+        fake_initial=fake_initial,
+    )
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/migrations/executor.py", line 135, in migrate
+    state = self._migrate_all_forwards(
+        state, plan, full_plan, fake=fake, fake_initial=fake_initial
+    )
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/migrations/executor.py", line 167, in _migrate_all_forwards
+    state = self.apply_migration(
+        state, migration, fake=fake, fake_initial=fake_initial
+    )
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/migrations/executor.py", line 255, in apply_migration
+    state = migration.apply(state, schema_editor)
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/migrations/migration.py", line 132, in apply
+    operation.database_forwards(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self.app_label, schema_editor, old_state, project_state
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/migrations/operations/models.py", line 97, in database_forwards
+    schema_editor.create_model(model)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py", line 512, in create_model
+    self.execute(sql, params or None)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py", line 204, in execute
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/utils.py", line 103, in _execute
+    return self.cursor.execute(sql)
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 76, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/renato/programacao/estudo/fiap/GS2/RN/sistema/.venv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.OperationalError: (1050, "Table 'nivel_agua' already exists")
+
+
+
+
+#######
+
+
+
+TABELA EXISTE
+
+
+
+MariaDB [alagamentos_poa]> describe nivel_agua;
++------------+---------------------+------+-----+---------------------+----------------+
+| Field      | Type                | Null | Key | Default             | Extra          |
++------------+---------------------+------+-----+---------------------+----------------+
+| id         | tinyint(3) unsigned | NO   | PRI | NULL                | auto_increment |
+| nivel      | tinyint(3) unsigned | NO   | UNI | NULL                |                |
+| descricao  | varchar(50)         | NO   | UNI | NULL                |                |
+| created_at | timestamp           | YES  |     | current_timestamp() |                |
++------------+---------------------+------+-----+---------------------+----------------+
+4 rows in set (0,001 sec)
+
+MariaDB [alagamentos_poa]> select * from nivel_agua;
++----+-------+-----------+---------------------+
+| id | nivel | descricao | created_at          |
++----+-------+-----------+---------------------+
+|  1 |     1 | Normal    | 2025-06-02 13:25:19 |
+|  2 |     2 | Alerta    | 2025-06-02 13:25:19 |
+|  3 |     3 | Crítico   | 2025-06-02 13:25:19 |
++----+-------+-----------+---------------------+
+3 rows in set (0,000 sec)

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Monitoramento de Alagamentos - Porto Alegre{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --cor-normal: #28a745;
+            --cor-alerta: #ffc107;
+            --cor-critico: #dc3545;
+            --cor-fundo: #f8f9fa;
+        }
+        
+        body {
+            background-color: var(--cor-fundo);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: #0056b3 !important;
+        }
+        
+        .status-normal {
+            background-color: var(--cor-normal);
+            color: white;
+        }
+        
+        .status-alerta {
+            background-color: var(--cor-alerta);
+            color: black;
+        }
+        
+        .status-critico {
+            background-color: var(--cor-critico);
+            color: white;
+        }
+        
+        .card-stats {
+            transition: transform 0.2s;
+        }
+        
+        .card-stats:hover {
+            transform: translateY(-2px);
+        }
+        
+        .mapa-container {
+            height: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .alert-tempo-real {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 350px;
+        }
+        
+        .ultima-atualizacao {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .conexao-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .conexao-online {
+            background-color: var(--cor-normal);
+        }
+        
+        .conexao-offline {
+            background-color: var(--cor-critico);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-water"></i> Alagamentos POA
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                           href="{% url 'dashboard' %}">
+                            <i class="fas fa-map"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'historico' %}active{% endif %}" 
+                           href="{% url 'historico' %}">
+                            <i class="fas fa-history"></i> Histórico
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'cadastro' %}active{% endif %}" 
+                           href="{% url 'cadastro' %}">
+                            <i class="fas fa-user-plus"></i> Cadastro
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text">
+                            <i class="fas fa-clock"></i> 
+                            <span id="ultima-atualizacao">Carregando...</span>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid mt-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Status de Conexão -->
+    <div id="conexao-status" class="conexao-status badge">
+        <i class="fas fa-wifi"></i> <span id="conexao-texto">Conectando...</span>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js (para gráficos no histórico) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Base JavaScript -->
+    <script>
+        // Configuração global
+        window.APP_CONFIG = {
+            API_BASE_URL: '/api/',
+            WEBSOCKET_URL: `ws://${window.location.host}/ws/alagamentos/`,
+            UPDATE_INTERVAL: 30000, // 30 segundos
+        };
+        
+        // Utilitários globais
+        window.Utils = {
+            formatDateTime: function(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleString('pt-BR');
+            },
+            
+            getStatusClass: function(cor) {
+                switch(cor.toLowerCase()) {
+                    case 'verde': return 'status-normal';
+                    case 'amarelo': return 'status-alerta';
+                    case 'vermelho': return 'status-critico';
+                    default: return 'status-normal';
+                }
+            },
+            
+            getStatusIcon: function(cor) {
+                switch(cor.toLowerCase()) {
+                    case 'verde': return 'fas fa-check-circle';
+                    case 'amarelo': return 'fas fa-exclamation-triangle';
+                    case 'vermelho': return 'fas fa-exclamation-circle';
+                    default: return 'fas fa-question-circle';
+                }
+            },
+            
+            showAlert: function(message, type = 'info', duration = 5000) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-tempo-real`;
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, duration);
+            },
+            
+            updateLastUpdate: function() {
+                const now = new Date();
+                document.getElementById('ultima-atualizacao').textContent = 
+                    now.toLocaleTimeString('pt-BR');
+            }
+        };
+        
+        // Atualiza horário a cada minuto
+        setInterval(Utils.updateLastUpdate, 60000);
+        Utils.updateLastUpdate();
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

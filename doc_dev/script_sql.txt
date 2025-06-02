@@ -1,0 +1,398 @@
+﻿-- ==========================================
+-- SISTEMA DE MONITORAMENTO DE ALAGAMENTOS
+-- Porto Alegre - Script de Criação MySQL
+-- ==========================================
+
+
+-- Configurações iniciais
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';
+
+
+-- Criar schema se não existir
+CREATE SCHEMA IF NOT EXISTS `alagamentos_poa` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `alagamentos_poa`;
+
+
+-- ==========================================
+-- TABELAS DE DICIONÁRIOS (Dados Fixos)
+-- ==========================================
+
+
+-- Tabela: regioes
+CREATE TABLE `regiao` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `numero` TINYINT UNSIGNED NOT NULL,
+    `nome` VARCHAR(100) NOT NULL,
+    `geojson` LONGTEXT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_regiao_numero` (`numero`),
+    UNIQUE KEY `uk_regiao_nome` (`nome`),
+    INDEX `idx_regiao_numero` (`numero`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Regiões administrativas de Porto Alegre';
+
+
+-- Tabela: volume_chuva
+CREATE TABLE `volume_chuva` (
+    `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nivel` TINYINT UNSIGNED NOT NULL,
+    `descricao` VARCHAR(50) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_volume_chuva_nivel` (`nivel`),
+    UNIQUE KEY `uk_volume_chuva_descricao` (`descricao`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Níveis de volume de chuva (1=Baixa, 2=Moderada, 3=Intensa)';
+
+
+-- Tabela: nivel_agua
+CREATE TABLE `nivel_agua` (
+    `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nivel` TINYINT UNSIGNED NOT NULL,
+    `descricao` VARCHAR(50) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_nivel_agua_nivel` (`nivel`),
+    UNIQUE KEY `uk_nivel_agua_descricao` (`descricao`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Níveis de água (1=Normal, 2=Alerta, 3=Crítico)';
+
+
+-- Tabela: status
+CREATE TABLE `status` (
+    `id` TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nivel` TINYINT UNSIGNED NOT NULL,
+    `descricao` VARCHAR(50) NOT NULL,
+    `cor` VARCHAR(20) NOT NULL,
+    `tipo_alerta` VARCHAR(50) NOT NULL,
+    `cnn_ativa` BOOLEAN NOT NULL DEFAULT FALSE,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_status_nivel` (`nivel`),
+    INDEX `idx_status_cnn_ativa` (`cnn_ativa`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Status de alerta (0=Verde, 1=Amarelo, 2=Vermelho)';
+
+
+-- Tabela: texto_alerta
+CREATE TABLE `texto_alerta` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `id_status` TINYINT UNSIGNED NOT NULL,
+    `texto` TEXT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    INDEX `idx_texto_alerta_status` (`id_status`),
+    
+    CONSTRAINT `fk_texto_alerta_status`
+        FOREIGN KEY (`id_status`)
+        REFERENCES `status` (`id`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Textos personalizados para cada tipo de alerta';
+
+
+-- ==========================================
+-- TABELAS DE CADASTROS
+-- ==========================================
+
+
+-- Tabela: cadastro
+CREATE TABLE `cadastro` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nome` VARCHAR(150) NOT NULL,
+    `telefone` VARCHAR(20) NOT NULL,
+    `email` VARCHAR(255) NOT NULL,
+    `id_regiao` INT UNSIGNED NOT NULL,
+    `situacao` ENUM('ATIVO', 'INATIVO', 'BLOQUEADO') NOT NULL DEFAULT 'ATIVO',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_cadastro_email` (`email`),
+    INDEX `idx_cadastro_regiao` (`id_regiao`),
+    INDEX `idx_cadastro_situacao` (`situacao`),
+    INDEX `idx_cadastro_telefone` (`telefone`),
+    
+    CONSTRAINT `fk_cadastro_regiao`
+        FOREIGN KEY (`id_regiao`)
+        REFERENCES `regiao` (`id`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Usuários cadastrados para receber alertas';
+
+
+-- ==========================================
+-- TABELAS DE AFERIÇÕES (Dados Transacionais)
+-- ==========================================
+
+
+-- Tabela: medicao
+CREATE TABLE `medicao` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `data` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `id_regiao` INT UNSIGNED NOT NULL,
+    `id_nivel_agua` TINYINT UNSIGNED NOT NULL,
+    `id_volume_chuva` TINYINT UNSIGNED NOT NULL,
+    `avaliar_risco` BOOLEAN NOT NULL DEFAULT FALSE,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    INDEX `idx_medicao_data` (`data`),
+    INDEX `idx_medicao_regiao` (`id_regiao`),
+    INDEX `idx_medicao_risco` (`avaliar_risco`),
+    INDEX `idx_medicao_regiao_data` (`id_regiao`, `data`),
+    
+    CONSTRAINT `fk_medicao_regiao`
+        FOREIGN KEY (`id_regiao`)
+        REFERENCES `regiao` (`id`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    CONSTRAINT `fk_medicao_nivel_agua`
+        FOREIGN KEY (`id_nivel_agua`)
+        REFERENCES `nivel_agua` (`id`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    
+    CONSTRAINT `fk_medicao_volume_chuva`
+        FOREIGN KEY (`id_volume_chuva`)
+        REFERENCES `volume_chuva` (`id`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Medições de água e chuva por região';
+
+
+-- Tabela: risco_humano
+CREATE TABLE `risco_humano` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `data` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `id_medicao` BIGINT UNSIGNED NOT NULL,
+    `imagem` VARCHAR(500) NULL,
+    `risco` BOOLEAN NOT NULL DEFAULT FALSE,
+    `id_status` TINYINT UNSIGNED NOT NULL,
+    `processamento_tempo` DECIMAL(5,3) NULL COMMENT 'Tempo processamento CNN em segundos',
+    `confianca_ia` DECIMAL(5,3) NULL COMMENT 'Nível de confiança da IA (0-1)',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_risco_humano_medicao` (`id_medicao`),
+    INDEX `idx_risco_humano_data` (`data`),
+    INDEX `idx_risco_humano_risco` (`risco`),
+    INDEX `idx_risco_humano_status` (`id_status`),
+    
+    CONSTRAINT `fk_risco_humano_medicao`
+        FOREIGN KEY (`id_medicao`)
+        REFERENCES `medicao` (`id`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    CONSTRAINT `fk_risco_humano_status`
+        FOREIGN KEY (`id_status`)
+        REFERENCES `status` (`id`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Análises de risco humano via CNN';
+
+
+-- Tabela: envio_alerta
+CREATE TABLE `envio_alerta` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `data` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `id_risco_humano` BIGINT UNSIGNED NOT NULL,
+    `id_cadastro` INT UNSIGNED NOT NULL,
+    `envio_whats` BOOLEAN NOT NULL DEFAULT FALSE,
+    `envio_email` BOOLEAN NOT NULL DEFAULT FALSE,
+    `sucesso_whats` BOOLEAN NULL,
+    `sucesso_email` BOOLEAN NULL,
+    `erro_whats` TEXT NULL,
+    `erro_email` TEXT NULL,
+    `tentativas_whats` TINYINT UNSIGNED DEFAULT 0,
+    `tentativas_email` TINYINT UNSIGNED DEFAULT 0,
+    `comentario` TEXT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    INDEX `idx_envio_alerta_data` (`data`),
+    INDEX `idx_envio_alerta_risco` (`id_risco_humano`),
+    INDEX `idx_envio_alerta_cadastro` (`id_cadastro`),
+    INDEX `idx_envio_alerta_sucesso` (`sucesso_whats`, `sucesso_email`),
+    
+    CONSTRAINT `fk_envio_alerta_risco_humano`
+        FOREIGN KEY (`id_risco_humano`)
+        REFERENCES `risco_humano` (`id`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    
+    CONSTRAINT `fk_envio_alerta_cadastro`
+        FOREIGN KEY (`id_cadastro`)
+        REFERENCES `cadastro` (`id`)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='Histórico de envios de alertas individuais';
+
+
+-- ==========================================
+-- INSERÇÃO DE DADOS INICIAIS
+-- ==========================================
+
+
+-- Dados: volume_chuva
+INSERT INTO `volume_chuva` (`nivel`, `descricao`) VALUES
+(1, 'Baixa'),
+(2, 'Moderada'),
+(3, 'Intensa');
+
+
+-- Dados: nivel_agua
+INSERT INTO `nivel_agua` (`nivel`, `descricao`) VALUES
+(1, 'Normal'),
+(2, 'Alerta'),
+(3, 'Crítico');
+
+
+-- Dados: status
+INSERT INTO `status` (`nivel`, `descricao`, `cor`, `tipo_alerta`, `cnn_ativa`) VALUES
+(0, 'Normal', 'Verde', 'Nenhum', FALSE),
+(1, 'Preventivo', 'Amarelo', 'Monitoramento', TRUE),
+(2, 'Crítico', 'Vermelho', 'Evacuação', TRUE);
+
+
+-- Dados: texto_alerta
+INSERT INTO `texto_alerta` (`id_status`, `texto`) VALUES
+(1, 'ATENÇÃO: Condições de risco detectadas na sua região. Mantenha-se alerta e evite áreas alagáveis.'),
+(2, 'ALERTA CRÍTICO: Risco iminente de alagamento com pessoas em área de perigo. Procure local seguro imediatamente!'),
+(3, 'EMERGÊNCIA: Situação crítica confirmada na sua região. Evacuação recomendada. Contate autoridades se necessário.');
+
+
+-- ==========================================
+-- VIEWS ÚTEIS PARA CONSULTAS
+-- ==========================================
+
+
+-- View: Situação atual por região
+CREATE VIEW `vw_situacao_atual` AS
+SELECT 
+    r.id,
+    r.numero,
+    r.nome as regiao,
+    COALESCE(s.descricao, 'Normal') as status_atual,
+    COALESCE(s.cor, 'Verde') as cor_atual,
+    COUNT(c.id) as usuarios_cadastrados,
+    MAX(m.data) as ultima_medicao
+FROM regiao r
+LEFT JOIN medicao m ON r.id = m.id_regiao
+LEFT JOIN risco_humano rh ON m.id = rh.id_medicao
+LEFT JOIN status s ON rh.id_status = s.id
+LEFT JOIN cadastro c ON r.id = c.id_regiao AND c.situacao = 'ATIVO'
+GROUP BY r.id, r.numero, r.nome, s.descricao, s.cor;
+
+
+-- View: Histórico de alertas
+CREATE VIEW `vw_historico_alertas` AS
+SELECT 
+    ea.id,
+    ea.data,
+    r.nome as regiao,
+    c.nome as usuario,
+    c.telefone,
+    c.email,
+    s.descricao as tipo_alerta,
+    s.cor,
+    ea.envio_whats,
+    ea.envio_email,
+    ea.sucesso_whats,
+    ea.sucesso_email,
+    rh.confianca_ia
+FROM envio_alerta ea
+JOIN risco_humano rh ON ea.id_risco_humano = rh.id
+JOIN medicao m ON rh.id_medicao = m.id
+JOIN regiao r ON m.id_regiao = r.id
+JOIN cadastro c ON ea.id_cadastro = c.id
+JOIN status s ON rh.id_status = s.id
+ORDER BY ea.data DESC;
+
+
+-- ==========================================
+-- PROCEDURES ÚTEIS
+-- ==========================================
+
+
+DELIMITER $$
+
+
+-- Procedure: Buscar usuários para notificar
+CREATE PROCEDURE `sp_usuarios_para_notificar`(
+    IN p_id_regiao INT UNSIGNED
+)
+BEGIN
+    SELECT 
+        id,
+        nome,
+        telefone,
+        email
+    FROM cadastro 
+    WHERE id_regiao = p_id_regiao 
+      AND situacao = 'ATIVO';
+END$$
+
+
+-- Procedure: Estatísticas de alertas
+CREATE PROCEDURE `sp_estatisticas_alertas`(
+    IN p_data_inicio DATE,
+    IN p_data_fim DATE
+)
+BEGIN
+    SELECT 
+        r.nome as regiao,
+        COUNT(ea.id) as total_alertas,
+        SUM(CASE WHEN ea.sucesso_whats = TRUE THEN 1 ELSE 0 END) as whats_sucessos,
+        SUM(CASE WHEN ea.sucesso_email = TRUE THEN 1 ELSE 0 END) as email_sucessos,
+        AVG(rh.confianca_ia) as confianca_media_ia
+    FROM envio_alerta ea
+    JOIN risco_humano rh ON ea.id_risco_humano = rh.id
+    JOIN medicao m ON rh.id_medicao = m.id
+    JOIN regiao r ON m.id_regiao = r.id
+    WHERE DATE(ea.data) BETWEEN p_data_inicio AND p_data_fim
+    GROUP BY r.id, r.nome
+    ORDER BY total_alertas DESC;
+END$$
+
+
+DELIMITER ;
+
+
+-- ==========================================
+-- CONFIGURAÇÕES FINAIS
+-- ==========================================
+
+
+-- Restaurar configurações
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+
+-- Mostrar estrutura criada
+SHOW TABLES;
+
+
+-- Comentários finais
+SELECT 'Script executado com sucesso!' as STATUS,
+       'Banco de dados alagamentos_poa criado' as DETALHES,
+       NOW() as TIMESTAMP;

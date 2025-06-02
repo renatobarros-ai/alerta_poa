@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+
+{% block title %}Histórico de Alertas - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history"></i> Histórico de Alertas
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="aplicarFiltros()">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="exportarDados()">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Período:</label>
+                        <select class="form-select" id="filtro-periodo">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30">Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Região:</label>
+                        <select class="form-select" id="filtro-regiao">
+                            <option value="">Todas as regiões</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo de Alerta:</label>
+                        <select class="form-select" id="filtro-tipo">
+                            <option value="">Todos os tipos</option>
+                            <option value="Preventivo">Preventivo</option>
+                            <option value="Crítico">Crítico</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status de Envio:</label>
+                        <select class="form-select" id="filtro-status">
+                            <option value="">Todos</option>
+                            <option value="sucesso">Enviado com sucesso</option>
+                            <option value="erro">Com erro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Estatísticas -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-primary text-white">
+                            <div class="card-body">
+                                <h5 id="total-alertas">0</h5>
+                                <small>Total de Alertas</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-success text-white">
+                            <div class="card-body">
+                                <h5 id="alertas-sucesso">0</h5>
+                                <small>Enviados com Sucesso</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning text-white">
+                            <div class="card-body">
+                                <h5 id="alertas-pendentes">0</h5>
+                                <small>Pendentes</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-danger text-white">
+                            <div class="card-body">
+                                <h5 id="alertas-erro">0</h5>
+                                <small>Com Erro</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <canvas id="grafico-alertas" height="100"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabela -->
+                <div class="table-responsive">
+                    <table class="table table-striped" id="tabela-historico">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Região</th>
+                                <th>Usuário</th>
+                                <th>Tipo de Alerta</th>
+                                <th>WhatsApp</th>
+                                <th>Email</th>
+                                <th>Confiança IA</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <i class="fas fa-spinner fa-spin"></i> Carregando dados...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginação -->
+                <nav class="mt-3">
+                    <ul class="pagination justify-content-center" id="paginacao">
+                        <!-- Será preenchida dinamicamente -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes do Alerta -->
+<div class="modal fade" id="modalAlerta" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle"></i> Detalhes do Alerta
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informações do Alerta</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Data/Hora:</span>
+                                <span id="modal-data">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Região:</span>
+                                <span id="modal-regiao">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Tipo:</span>
+                                <span id="modal-tipo">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Confiança IA:</span>
+                                <span id="modal-confianca-detalhes">-</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Informações do Usuário</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Nome:</span>
+                                <span id="modal-usuario">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Telefone:</span>
+                                <span id="modal-telefone">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Email:</span>
+                                <span id="modal-email">-</span>
+                            </li>
+                        </ul>
+                        
+                        <h6 class="mt-3">Status de Envio</h6>
+                        <div id="modal-status-envio">
+                            <!-- Será preenchido dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let dadosHistorico = [];
+    let graficoAlertas = null;
+    let paginaAtual = 1;
+    const itensPorPagina = 10;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarRegioes();
+        carregarHistorico();
+        inicializarGrafico();
+    });
+    
+    function carregarRegioes() {
+        fetch(APP_CONFIG.API_BASE_URL + 'regioes/')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('filtro-regiao');
+                data.forEach(regiao => {
+                    const option = document.createElement('option');
+                    option.value = regiao.id;
+                    option.textContent = `${regiao.numero} - ${regiao.nome}`;
+                    select.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Erro ao carregar regiões:', error));
+    }
+    
+    function carregarHistorico() {
+        const periodo = document.getElementById('filtro-periodo').value;
+        const regiao = document.getElementById('filtro-regiao').value;
+        const tipo = document.getElementById('filtro-tipo').value;
+        const status = document.getElementById('filtro-status').value;
+        
+        let url = `${APP_CONFIG.API_BASE_URL}historico-alertas/?dias=${periodo}`;
+        if (regiao) url += `&regiao=${regiao}`;
+        if (tipo) url += `&tipo=${tipo}`;
+        if (status) url += `&status=${status}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                dadosHistorico = data;
+                atualizarEstatisticas(data);
+                atualizarTabela(data);
+                atualizarGrafico(data);
+            })
+            .catch(error => {
+                console.error('Erro ao carregar histórico:', error);
+                document.querySelector('#tabela-historico tbody').innerHTML = 
+                    '<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>';
+            });
+    }
+    
+    function atualizarEstatisticas(data) {
+        const total = data.length;
+        const sucesso = data.filter(item => item.sucesso_whats || item.sucesso_email).length;
+        const erro = data.filter(item => 
+            (item.envio_whats && !item.sucesso_whats) || 
+            (item.envio_email && !item.sucesso_email)
+        ).length;
+        const pendentes = total - sucesso - erro;
+        
+        document.getElementById('total-alertas').textContent = total;
+        document.getElementById('alertas-sucesso').textContent = sucesso;
+        document.getElementById('alertas-pendentes').textContent = pendentes;
+        document.getElementById('alertas-erro').textContent = erro;
+    }
+    
+    function atualizarTabela(data) {
+        const tbody = document.querySelector('#tabela-historico tbody');
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Nenhum alerta encontrado</td></tr>';
+            return;
+        }
+        
+        // Paginação
+        const inicio = (paginaAtual - 1) * itensPorPagina;
+        const fim = inicio + itensPorPagina;
+        const dadosPagina = data.slice(inicio, fim);
+        
+        const html = dadosPagina.map(item => `
+            <tr>
+                <td>${Utils.formatDateTime(item.data)}</td>
+                <td>${item.regiao}</td>
+                <td>${item.usuario}</td>
+                <td>
+                    <span class="badge ${Utils.getStatusClass(item.cor)}">
+                        ${item.tipo_alerta}
+                    </span>
+                </td>
+                <td>
+                    ${getEnvioStatus(item.envio_whats, item.sucesso_whats)}
+                </td>
+                <td>
+                    ${getEnvioStatus(item.envio_email, item.sucesso_email)}
+                </td>
+                <td>
+                    ${item.confianca_ia ? (item.confianca_ia * 100).toFixed(1) + '%' : '-'}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="verDetalhesAlerta(${item.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+        tbody.innerHTML = html;
+        atualizarPaginacao(data.length);
+    }
+    
+    function getEnvioStatus(enviado, sucesso) {
+        if (!enviado) {
+            return '<span class="text-muted">-</span>';
+        }
+        
+        if (sucesso === true) {
+            return '<i class="fas fa-check-circle text-success"></i>';
+        } else if (sucesso === false) {
+            return '<i class="fas fa-times-circle text-danger"></i>';
+        } else {
+            return '<i class="fas fa-clock text-warning"></i>';
+        }
+    }
+    
+    function atualizarPaginacao(totalItens) {
+        const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+        const paginacao = document.getElementById('paginacao');
+        
+        if (totalPaginas <= 1) {
+            paginacao.innerHTML = '';
+            return;
+        }
+        
+        let html = '';
+        
+        // Anterior
+        html += `
+            <li class="page-item ${paginaAtual === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="mudarPagina(${paginaAtual - 1})">Anterior</a>
+            </li>
+        `;
+        
+        // Páginas
+        for (let i = 1; i <= totalPaginas; i++) {
+            if (i === paginaAtual || i === 1 || i === totalPaginas || (i >= paginaAtual - 2 && i <= paginaAtual + 2)) {
+                html += `
+                    <li class="page-item ${i === paginaAtual ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>
+                    </li>
+                `;
+            } else if (i === paginaAtual - 3 || i === paginaAtual + 3) {
+                html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+        }
+        
+        // Próximo
+        html += `
+            <li class="page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="mudarPagina(${paginaAtual + 1})">Próximo</a>
+            </li>
+        `;
+        
+        paginacao.innerHTML = html;
+    }
+    
+    function mudarPagina(novaPagina) {
+        if (novaPagina < 1 || novaPagina > Math.ceil(dadosHistorico.length / itensPorPagina)) {
+            return;
+        }
+        
+        paginaAtual = novaPagina;
+        atualizarTabela(dadosHistorico);
+    }
+    
+    function inicializarGrafico() {
+        const ctx = document.getElementById('grafico-alertas').getContext('2d');
+        
+        graficoAlertas = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Alertas por Dia',
+                    data: [],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    function atualizarGrafico(data) {
+        if (!graficoAlertas) return;
+        
+        // Agrupa alertas por dia
+        const alertasPorDia = {};
+        data.forEach(item => {
+            const dia = new Date(item.data).toLocaleDateString('pt-BR');
+            alertasPorDia[dia] = (alertasPorDia[dia] || 0) + 1;
+        });
+        
+        const labels = Object.keys(alertasPorDia).sort();
+        const valores = labels.map(label => alertasPorDia[label]);
+        
+        graficoAlertas.data.labels = labels;
+        graficoAlertas.data.datasets[0].data = valores;
+        graficoAlertas.update();
+    }
+    
+    function aplicarFiltros() {
+        paginaAtual = 1;
+        carregarHistorico();
+    }
+    
+    function verDetalhesAlerta(alertaId) {
+        const alerta = dadosHistorico.find(item => item.id === alertaId);
+        if (!alerta) return;
+        
+        // Preenche o modal
+        document.getElementById('modal-data').textContent = Utils.formatDateTime(alerta.data);
+        document.getElementById('modal-regiao').textContent = alerta.regiao;
+        document.getElementById('modal-tipo').textContent = alerta.tipo_alerta;
+        document.getElementById('modal-confianca-detalhes').textContent = 
+            alerta.confianca_ia ? (alerta.confianca_ia * 100).toFixed(1) + '%' : 'N/A';
+        document.getElementById('modal-usuario').textContent = alerta.usuario;
+        document.getElementById('modal-telefone').textContent = alerta.telefone;
+        document.getElementById('modal-email').textContent = alerta.email;
+        
+        // Status de envio
+        const statusHtml = `
+            <div class="row">
+                <div class="col-6">
+                    <strong>WhatsApp:</strong><br>
+                    ${getEnvioStatusDetalhado(alerta.envio_whats, alerta.sucesso_whats)}
+                </div>
+                <div class="col-6">
+                    <strong>Email:</strong><br>
+                    ${getEnvioStatusDetalhado(alerta.envio_email, alerta.sucesso_email)}
+                </div>
+            </div>
+        `;
+        document.getElementById('modal-status-envio').innerHTML = statusHtml;
+        
+        new bootstrap.Modal(document.getElementById('modalAlerta')).show();
+    }
+    
+    function getEnvioStatusDetalhado(enviado, sucesso) {
+        if (!enviado) {
+            return '<span class="text-muted">Não enviado</span>';
+        }
+        
+        if (sucesso === true) {
+            return '<span class="text-success"><i class="fas fa-check-circle"></i> Enviado com sucesso</span>';
+        } else if (sucesso === false) {
+            return '<span class="text-danger"><i class="fas fa-times-circle"></i> Falha no envio</span>';
+        } else {
+            return '<span class="text-warning"><i class="fas fa-clock"></i> Pendente</span>';
+        }
+    }
+    
+    function exportarDados() {
+        if (dadosHistorico.length === 0) {
+            Utils.showAlert('Nenhum dado para exportar', 'warning');
+            return;
+        }
+        
+        // Cria CSV
+        const headers = ['Data/Hora', 'Região', 'Usuário', 'Telefone', 'Email', 'Tipo de Alerta', 'WhatsApp Enviado', 'WhatsApp Sucesso', 'Email Enviado', 'Email Sucesso', 'Confiança IA'];
+        const csvContent = [
+            headers.join(','),
+            ...dadosHistorico.map(item => [
+                `"${Utils.formatDateTime(item.data)}"`,
+                `"${item.regiao}"`,
+                `"${item.usuario}"`,
+                `"${item.telefone}"`,
+                `"${item.email}"`,
+                `"${item.tipo_alerta}"`,
+                item.envio_whats ? 'Sim' : 'Não',
+                item.sucesso_whats === true ? 'Sucesso' : item.sucesso_whats === false ? 'Erro' : 'Pendente',
+                item.envio_email ? 'Sim' : 'Não',
+                item.sucesso_email === true ? 'Sucesso' : item.sucesso_email === false ? 'Erro' : 'Pendente',
+                item.confianca_ia ? (item.confianca_ia * 100).toFixed(1) + '%' : 'N/A'
+            ].join(','))
+        ].join('\n');
+        
+        // Download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `historico_alertas_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        Utils.showAlert('Dados exportados com sucesso!', 'success');
+    }
+</script>
+{% endblock %}

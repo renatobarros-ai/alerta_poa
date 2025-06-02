@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Estatísticas -->
+    <div class="col-12 mb-4">
+        <div class="row" id="stats-container">
+            <div class="col-md-3 mb-3">
+                <div class="card card-stats text-center status-normal">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-check-circle"></i> Normal
+                        </h5>
+                        <h2 class="card-text" id="regioes-normais">0</h2>
+                        <small>regiões</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card card-stats text-center status-alerta">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-exclamation-triangle"></i> Alerta
+                        </h5>
+                        <h2 class="card-text" id="regioes-alerta">0</h2>
+                        <small>regiões</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card card-stats text-center status-critico">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-exclamation-circle"></i> Crítico
+                        </h5>
+                        <h2 class="card-text" id="regioes-criticas">0</h2>
+                        <small>regiões</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card card-stats text-center bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-users"></i> Usuários
+                        </h5>
+                        <h2 class="card-text" id="total-usuarios">0</h2>
+                        <small>cadastrados</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mapa -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-map"></i> Mapa de Porto Alegre
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" id="btn-atualizar" onclick="atualizarDados()">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="btn-simular" onclick="executarSimulacao()">
+                        <i class="fas fa-play"></i> Simular
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="mapa" class="mapa-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel Lateral -->
+    <div class="col-lg-4 mb-4">
+        <!-- Legenda -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Legenda</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="badge status-normal me-2" style="width: 20px; height: 20px;"></div>
+                    <span>Normal - Situação segura</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="badge status-alerta me-2" style="width: 20px; height: 20px;"></div>
+                    <span>Alerta - Risco detectado</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="badge status-critico me-2" style="width: 20px; height: 20px;"></div>
+                    <span>Crítico - Pessoas em risco</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimas Atualizações -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-clock"></i> Últimas Atualizações</h6>
+            </div>
+            <div class="card-body">
+                <div id="ultimas-atualizacoes">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin"></i> Carregando...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes da Região -->
+<div class="modal fade" id="modalRegiao" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-map-marker-alt"></i> 
+                    <span id="modal-regiao-nome">Região</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Status Atual</h6>
+                        <div id="modal-status-badge" class="badge fs-6 mb-3">Status</div>
+                        
+                        <h6>Dados dos Sensores</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><i class="fas fa-tint"></i> Nível da Água:</span>
+                                <span id="modal-nivel-agua">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><i class="fas fa-cloud-rain"></i> Volume de Chuva:</span>
+                                <span id="modal-volume-chuva">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><i class="fas fa-users"></i> Pessoas Detectadas:</span>
+                                <span id="modal-pessoas">-</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span><i class="fas fa-brain"></i> Confiança IA:</span>
+                                <span id="modal-confianca">-</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Usuários Cadastrados</h6>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-user-check"></i> 
+                            <span id="modal-usuarios-count">0</span> usuários ativos
+                        </p>
+                        
+                        <h6>Última Atualização</h6>
+                        <p class="text-muted" id="modal-ultima-atualizacao">-</p>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-primary btn-sm" onclick="verHistoricoRegiao()">
+                                <i class="fas fa-history"></i> Ver Histórico
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% url 'static' 'js/websocket.js' %}"></script>
+<script src="{% url 'static' 'js/map.js' %}"></script>
+<script>
+    let map, websocket;
+    let regiaoSelecionada = null;
+    
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeMap();
+        initializeWebSocket();
+        loadInitialData();
+    });
+    
+    function initializeMap() {
+        // Inicializa o mapa centrado em Porto Alegre
+        map = L.map('mapa').setView([-30.0346, -51.2177], 11);
+        
+        // Adiciona tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Carrega as regiões
+        loadRegions();
+    }
+    
+    function initializeWebSocket() {
+        websocket = new WebSocketManager(APP_CONFIG.WEBSOCKET_URL);
+        
+        websocket.onStatusUpdate = function(data) {
+            updateMapRegions(data);
+            updateStats(data);
+            updateLastUpdates(data);
+        };
+        
+        websocket.onRegionAlert = function(data) {
+            Utils.showAlert(
+                `🚨 Alerta na ${data.region_name}: ${data.message}`,
+                data.alert_level === 2 ? 'danger' : 'warning'
+            );
+        };
+        
+        websocket.connect();
+    }
+    
+    function loadInitialData() {
+        // Carrega estatísticas do dashboard
+        fetch(APP_CONFIG.API_BASE_URL + 'dashboard/')
+            .then(response => response.json())
+            .then(data => updateStatsDisplay(data))
+            .catch(error => console.error('Erro ao carregar stats:', error));
+    }
+    
+    function loadRegions() {
+        fetch(APP_CONFIG.API_BASE_URL + 'regioes/')
+            .then(response => response.json())
+            .then(data => {
+                // Para demonstração, cria círculos nas regiões
+                // Em produção, usaria os dados GeoJSON reais
+                data.forEach((regiao, index) => {
+                    const lat = -30.0346 + (Math.random() - 0.5) * 0.2;
+                    const lng = -51.2177 + (Math.random() - 0.5) * 0.3;
+                    
+                    const circle = L.circle([lat, lng], {
+                        color: '#28a745',
+                        fillColor: '#28a745',
+                        fillOpacity: 0.7,
+                        radius: 2000
+                    }).addTo(map);
+                    
+                    circle.regiao_id = regiao.id;
+                    circle.regiao_data = regiao;
+                    
+                    circle.bindPopup(`
+                        <strong>${regiao.nome}</strong><br>
+                        Região ${regiao.numero}<br>
+                        <button class="btn btn-sm btn-primary mt-1" 
+                                onclick="abrirModalRegiao(${regiao.id})">
+                            Ver Detalhes
+                        </button>
+                    `);
+                });
+            })
+            .catch(error => console.error('Erro ao carregar regiões:', error));
+    }
+    
+    function updateMapRegions(data) {
+        // Atualiza cores das regiões no mapa
+        map.eachLayer(function(layer) {
+            if (layer.regiao_id) {
+                const regiaoData = data.find(r => r.regiao_id === layer.regiao_id);
+                if (regiaoData) {
+                    const cor = getColorFromStatus(regiaoData.status_cor);
+                    layer.setStyle({
+                        color: cor,
+                        fillColor: cor
+                    });
+                }
+            }
+        });
+    }
+    
+    function updateStats(data) {
+        const stats = {
+            normal: 0,
+            alerta: 0,
+            critico: 0
+        };
+        
+        data.forEach(regiao => {
+            switch(regiao.status_nivel) {
+                case 0: stats.normal++; break;
+                case 1: stats.alerta++; break;
+                case 2: stats.critico++; break;
+            }
+        });
+        
+        document.getElementById('regioes-normais').textContent = stats.normal;
+        document.getElementById('regioes-alerta').textContent = stats.alerta;
+        document.getElementById('regioes-criticas').textContent = stats.critico;
+    }
+    
+    function updateStatsDisplay(data) {
+        document.getElementById('regioes-normais').textContent = data.regioes_normais || 0;
+        document.getElementById('regioes-alerta').textContent = data.regioes_alerta || 0;
+        document.getElementById('regioes-criticas').textContent = data.regioes_criticas || 0;
+        document.getElementById('total-usuarios').textContent = data.usuarios_ativos || 0;
+    }
+    
+    function updateLastUpdates(data) {
+        const container = document.getElementById('ultimas-atualizacoes');
+        const alertas = data.filter(r => r.status_nivel > 0).slice(0, 5);
+        
+        if (alertas.length === 0) {
+            container.innerHTML = '<div class="text-muted">Nenhum alerta recente</div>';
+            return;
+        }
+        
+        const html = alertas.map(regiao => `
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge ${Utils.getStatusClass(regiao.status_cor)} me-2">
+                    ${regiao.status_descricao}
+                </span>
+                <small class="text-muted">${regiao.regiao_nome}</small>
+            </div>
+        `).join('');
+        
+        container.innerHTML = html;
+    }
+    
+    function getColorFromStatus(cor) {
+        switch(cor.toLowerCase()) {
+            case 'verde': return '#28a745';
+            case 'amarelo': return '#ffc107';
+            case 'vermelho': return '#dc3545';
+            default: return '#28a745';
+        }
+    }
+    
+    function abrirModalRegiao(regiaoId) {
+        regiaoSelecionada = regiaoId;
+        
+        // Busca dados detalhados da região
+        fetch(APP_CONFIG.API_BASE_URL + `regioes/${regiaoId}/`)
+            .then(response => response.json())
+            .then(regiao => {
+                document.getElementById('modal-regiao-nome').textContent = regiao.nome;
+                
+                // Aqui você buscaria os dados de status atual
+                // Por enquanto, dados mockados
+                document.getElementById('modal-status-badge').textContent = 'Normal';
+                document.getElementById('modal-status-badge').className = 'badge fs-6 mb-3 status-normal';
+                document.getElementById('modal-nivel-agua').textContent = 'Normal (1)';
+                document.getElementById('modal-volume-chuva').textContent = 'Baixa (1)';
+                document.getElementById('modal-pessoas').textContent = 'Não detectadas';
+                document.getElementById('modal-confianca').textContent = '-';
+                document.getElementById('modal-usuarios-count').textContent = '0';
+                document.getElementById('modal-ultima-atualizacao').textContent = Utils.formatDateTime(new Date());
+                
+                new bootstrap.Modal(document.getElementById('modalRegiao')).show();
+            })
+            .catch(error => console.error('Erro ao carregar região:', error));
+    }
+    
+    function atualizarDados() {
+        const btn = document.getElementById('btn-atualizar');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Atualizando...';
+        btn.disabled = true;
+        
+        fetch(APP_CONFIG.API_BASE_URL + 'situacao-atual/')
+            .then(response => response.json())
+            .then(data => {
+                updateMapRegions(data);
+                updateStats(data);
+                Utils.showAlert('Dados atualizados com sucesso!', 'success');
+            })
+            .catch(error => {
+                Utils.showAlert('Erro ao atualizar dados', 'danger');
+                console.error('Erro:', error);
+            })
+            .finally(() => {
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar';
+                btn.disabled = false;
+            });
+    }
+    
+    function executarSimulacao() {
+        const btn = document.getElementById('btn-simular');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Simulando...';
+        btn.disabled = true;
+        
+        fetch(APP_CONFIG.API_BASE_URL + 'simulacao/executar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                Utils.showAlert('Simulação executada com sucesso!', 'success');
+                setTimeout(atualizarDados, 2000);
+            } else {
+                Utils.showAlert('Erro na simulação: ' + data.erro, 'danger');
+            }
+        })
+        .catch(error => {
+            Utils.showAlert('Erro ao executar simulação', 'danger');
+            console.error('Erro:', error);
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-play"></i> Simular';
+            btn.disabled = false;
+        });
+    }
+    
+    function verHistoricoRegiao() {
+        window.location.href = `/historico/?regiao=${regiaoSelecionada}`;
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
