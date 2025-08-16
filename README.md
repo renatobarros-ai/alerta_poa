@@ -117,7 +117,7 @@ alagamentos_poa/
 ### 1. Clone o Repositório
 
 ```bash
-git clone <seu-repositorio>
+git clone https://github.com/renatobarrosai/alerta_poa.git
 cd sistema
 ```
 
